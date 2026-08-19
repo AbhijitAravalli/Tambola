@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tambola Caller · Housie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Fonts are progressive enhancement only; the app works fully offline with system fallbacks. -->
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1c0e2b; --bg2:#271239; --panel:#33194b; --panel2:#3d2159;
+    --line:rgba(255,255,255,.09);
+    --gold:#ffc247; --gold-deep:#e79a1f;
+    --coral:#ff5d73; --coral-deep:#e8455c;
+    --mint:#37e0a1; --mint-deep:#17b57e;
+    --text:#f6ecff; --muted:#b49bd2; --faint:#7a6494;
+    --display:"Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+    --body:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --r:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:var(--body); color:var(--text);
+    background:
+      radial-gradient(1200px 600px at 12% -8%, #3a1d55 0%, transparent 55%),
+      radial-gradient(1000px 700px at 100% 0%, #2a1550 0%, transparent 50%),
+      var(--bg);
+    min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:22px 18px 60px}
+
+  /* ---------- Header ---------- */
+  header.top{display:flex; align-items:center; gap:14px; margin-bottom:20px}
+  .logo{
+    width:52px;height:52px;border-radius:14px;flex:none;
+    background:radial-gradient(circle at 32% 28%, #fff2cf, var(--gold) 45%, var(--gold-deep));
+    display:grid;place-items:center;font-family:var(--display);font-weight:800;
+    color:#4a2600;font-size:24px;box-shadow:0 8px 22px rgba(255,180,60,.28), inset 0 -4px 8px rgba(120,60,0,.25)}
+  header.top h1{font-family:var(--display);font-weight:800;font-size:clamp(24px,4vw,34px);margin:0;letter-spacing:.2px}
+  header.top p{margin:2px 0 0;color:var(--muted);font-size:14px}
+
+  .card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);
+    border-radius:var(--r);padding:20px}
+  .card h2{font-family:var(--display);font-weight:700;margin:0 0 4px;font-size:19px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+
+  label.fld{display:block;font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);margin:0 0 6px}
+  input[type=number], textarea{
+    width:100%;background:#20102f;border:1px solid var(--line);border-radius:11px;color:var(--text);
+    font-family:var(--body);font-size:15px;padding:11px 13px;outline:none;transition:border-color .15s,box-shadow .15s}
+  input[type=number]:focus, textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,194,71,.18)}
+  textarea{resize:vertical;min-height:92px;line-height:1.6}
+
+  .btn{font-family:var(--display);font-weight:700;font-size:15px;border:none;border-radius:12px;
+    padding:12px 18px;cursor:pointer;color:#fff;transition:transform .06s ease, filter .15s, box-shadow .15s}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.3)}
+  .btn.primary{background:linear-gradient(180deg,var(--coral),var(--coral-deep));box-shadow:0 8px 20px rgba(255,93,115,.32)}
+  .btn.gold{background:linear-gradient(180deg,var(--gold),var(--gold-deep));color:#4a2600;box-shadow:0 8px 20px rgba(255,180,60,.28)}
+  .btn.ghost{background:#2a1640;border:1px solid var(--line);color:var(--text)}
+  .btn.ghost:hover{filter:brightness(1.15)}
+
+  /* ---------- Setup ---------- */
+  #setup .row{display:grid;grid-template-columns:160px 1fr;gap:18px}
+  @media(max-width:640px){#setup .row{grid-template-columns:1fr}}
+
+  /* ---------- Game layout ---------- */
+  #game{display:none;grid-template-columns:1fr;gap:18px}
+  #caller{grid-area:caller}
+  #board{grid-area:board}
+  #claims{grid-area:claims}
+  #ticketsCard{grid-area:tickets}
+  #game{grid-template-areas:"caller" "board" "claims" "tickets"}
+  @media(min-width:960px){
+    #game{grid-template-columns:348px 1fr;
+      grid-template-areas:"caller board" "claims board" "tickets tickets"}
+  }
+
+  /* ---------- Caller / current ball ---------- */
+  .ball-stage{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0 14px}
+  .ball{
+    width:168px;height:168px;border-radius:50%;display:grid;place-items:center;
+    font-family:var(--display);font-weight:800;font-size:76px;color:#4a2600;line-height:1;
+    background:radial-gradient(circle at 34% 30%, #fff6df 0%, var(--gold) 46%, var(--gold-deep) 100%);
+    box-shadow:0 14px 40px rgba(255,170,40,.35), inset 0 -8px 16px rgba(120,60,0,.28), inset 0 6px 12px rgba(255,255,255,.5);
+  }
+  .ball.empty{background:radial-gradient(circle at 34% 30%,#3a2154,#241338);color:var(--faint);font-size:22px;
+    box-shadow:inset 0 2px 10px rgba(0,0,0,.4);font-weight:700;letter-spacing:.5px}
+  .ball.pop{animation:pop .5s cubic-bezier(.2,1.5,.4,1)}
+  @keyframes pop{0%{transform:scale(.4) rotate(-12deg);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1) rotate(0);opacity:1}}
+  .ball-label{color:var(--muted);font-size:12.5px;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px}
+
+  .draw-btn{width:100%;font-size:20px;padding:16px}
+  .counts{display:flex;gap:10px;margin:14px 0 0}
+  .stat{flex:1;background:#20102f;border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+  .stat b{display:block;font-family:var(--display);font-size:26px;font-weight:800}
+  .stat span{color:var(--muted);font-size:11.5px;letter-spacing:.5px;text-transform:uppercase}
+
+  .recent{margin-top:14px}
+  .recent .lab{color:var(--faint);font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+  .recent-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .rchip{min-width:34px;height:34px;padding:0 6px;border-radius:9px;display:grid;place-items:center;
+    font-family:var(--display);font-weight:700;font-size:15px;background:#2a1640;border:1px solid var(--line);color:var(--muted)}
+  .rchip.new{background:linear-gradient(180deg,var(--gold),var(--gold-deep));color:#4a2600;border-color:transparent}
+
+  .tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .tools .btn{flex:1;min-width:120px;font-size:13.5px;padding:10px}
+  .toggles{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+  .tg{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+  .tg input{accent-color:var(--gold);width:16px;height:16px}
+  .tg select, .tg input[type=number]{width:74px;padding:6px 8px;font-size:13px}
+
+  /* ---------- Board 1-90 ---------- */
+  .board-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:7px}
+  .cell{aspect-ratio:1;border-radius:10px;display:grid;place-items:center;
+    font-family:var(--display);font-weight:700;font-size:clamp(13px,1.7vw,18px);
+    background:#241338;border:1px solid var(--line);color:var(--faint);transition:background .2s,color .2s,transform .2s}
+  .cell.hit{background:radial-gradient(circle at 34% 30%,#fff3d0,var(--gold) 55%,var(--gold-deep));color:#4a2600;border-color:transparent;
+    box-shadow:0 4px 12px rgba(255,180,60,.3)}
+  .cell.latest{outline:3px solid var(--coral);outline-offset:1px;transform:scale(1.06);z-index:2}
+
+  /* ---------- Claims ---------- */
+  .claim{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;background:#20102f;
+    border:1px solid var(--line);margin-bottom:9px}
+  .claim:last-child{margin-bottom:0}
+  .claim .dot{width:11px;height:11px;border-radius:50%;background:var(--faint);flex:none}
+  .claim.won .dot{background:var(--mint);box-shadow:0 0 0 4px rgba(55,224,161,.18)}
+  .claim .cname{font-family:var(--display);font-weight:700;font-size:15px}
+  .claim .meta{margin-left:auto;text-align:right;font-size:12.5px;color:var(--muted)}
+  .claim.won .meta b{color:var(--mint);font-family:var(--display)}
+  .claim .open{color:var(--faint);font-size:12px}
+
+  /* ---------- Tickets ---------- */
+  #ticketsCard .thead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:16px}
+  .ticket{background:#fdf7ec;border-radius:14px;padding:12px;color:#3a2b12;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+  .ticket .tt{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .ticket .pname{font-family:var(--display);font-weight:800;font-size:15px;color:#7a3d00}
+  .ticket .tno{font-size:11px;color:#9c8a6a;font-weight:600}
+  .tk{display:grid;grid-template-columns:repeat(9,1fr);gap:4px}
+  .tk .tc{aspect-ratio:1;border-radius:7px;display:grid;place-items:center;font-family:var(--display);
+    font-weight:700;font-size:14px;background:#efe4cd;color:#5a4620}
+  .tk .tc.blank{background:transparent}
+  .tk .tc.hit{background:linear-gradient(180deg,var(--mint),var(--mint-deep));color:#06301f}
+  .badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+  .badge{font-size:10.5px;font-weight:700;font-family:var(--display);background:#e7fff4;color:#0c6b47;
+    border:1px solid #b6ecd5;border-radius:999px;padding:3px 9px}
+
+  /* ---------- Announce banner ---------- */
+  #announce{position:fixed;left:50%;top:22px;transform:translateX(-50%) translateY(-140%);
+    background:linear-gradient(180deg,var(--mint),var(--mint-deep));color:#06301f;font-family:var(--display);
+    font-weight:800;padding:14px 24px;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.4);z-index:50;
+    transition:transform .4s cubic-bezier(.2,1.4,.4,1);max-width:90vw;text-align:center;font-size:16px}
+  #announce.show{transform:translateX(-50%) translateY(0)}
+
+  .muted-note{color:var(--faint);font-size:12px;margin-top:14px}
+
+  /* ---------- Print ---------- */
+  @media print{
+    body{background:#fff}
+    header.top, #setup, #caller, #board, #claims, #ticketsCard .thead .btn{display:none !important}
+    #game{display:block !important}
+    .card{border:none;background:#fff;padding:0}
+    .ticket{break-inside:avoid;border:1px solid #ccc;box-shadow:none}
+    .tgrid{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo">T</div>
+    <div>
+      <h1>Tambola Caller</h1>
+      <p>Generate tickets, call numbers 1–90, and watch claims light up automatically.</p>
+    </div>
+  </header>
+
+  <!-- ================= SETUP ================= -->
+  <section id="setup" class="card">
+    <h2>Set up a new game</h2>
+    <p class="sub">Every ticket is a valid 3×9 housie ticket (15 numbers, 5 per row) and guaranteed unique within the game.</p>
+    <div class="row">
+      <div>
+        <label class="fld" for="ticketCount">Tickets</label>
+        <input type="number" id="ticketCount" min="1" max="100" value="6" />
+      </div>
+      <div>
+        <label class="fld" for="names">Player names <span style="text-transform:none;color:var(--faint)">(optional · one per line)</span></label>
+        <textarea id="names" placeholder="Asha&#10;Ravi&#10;Meera&#10;…"></textarea>
+      </div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn gold" id="startBtn">Generate tickets &amp; start</button>
+    </div>
+    <p class="muted-note">Tip: open your browser console to see the self-test that validates 1,000 generated tickets.</p>
+  </section>
+
+  <!-- ================= GAME ================= -->
+  <div id="game">
+    <!-- Caller -->
+    <section id="caller" class="card">
+      <div class="ball-stage">
+        <div class="ball empty" id="ball">Ready</div>
+        <div class="ball-label" id="ballLabel">Press draw to begin</div>
+      </div>
+      <button class="btn primary draw-btn" id="drawBtn">Draw number</button>
+      <div class="counts">
+        <div class="stat"><b id="statDrawn">0</b><span>Drawn</span></div>
+        <div class="stat"><b id="statLeft">90</b><span>Remaining</span></div>
+      </div>
+      <div class="recent">
+        <div class="lab">Recent calls</div>
+        <div class="recent-chips" id="recent"></div>
+      </div>
+      <div class="tools">
+        <button class="btn ghost" id="undoBtn">Undo last</button>
+        <button class="btn ghost" id="newGameBtn">New game · keep tickets</button>
+        <button class="btn ghost" id="newTicketsBtn">New tickets</button>
+      </div>
+      <div class="toggles">
+        <label class="tg"><input type="checkbox" id="voiceTg"> Call numbers aloud</label>
+        <label class="tg"><input type="checkbox" id="autoTg"> Auto-draw every
+          <input type="number" id="autoSecs" value="5" min="2" max="30"> s</label>
+      </div>
+    </section>
+
+    <!-- Board -->
+    <section id="board" class="card">
+      <h2>Number board · 1–90</h2>
+      <p class="sub">Called numbers glow gold; the latest is ringed.</p>
+      <div class="board-grid" id="boardGrid"></div>
+    </section>
+
+    <!-- Claims -->
+    <section id="claims" class="card">
+      <h2>Claims</h2>
+      <p class="sub">Auto-awarded to the first ticket that completes each pattern.</p>
+      <div id="claimList"></div>
+    </section>
+
+    <!-- Tickets -->
+    <section id="ticketsCard" class="card">
+      <div class="thead">
+        <h2 style="margin:0">Tickets in play</h2>
+        <button class="btn ghost" id="printBtn" style="padding:9px 14px;font-size:13.5px">Print tickets</button>
+      </div>
+      <div class="tgrid" id="ticketGrid"></div>
+    </section>
+  </div>
+</div>
+
+<div id="announce"></div>
+
+<script>
+"use strict";
+/* =========================================================================
+   TAMBOLA / HOUSIE  —  single-file game
+   Rules: numbers 1–90 · ticket = 3 rows × 9 cols · 15 numbers (5 per row)
+   · each column 1–3 numbers within its fixed range · columns sorted ascending
+   ========================================================================= */
+
+const randInt = n => Math.floor(Math.random() * n);
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=randInt(i+1);[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+/* Range of numbers for column c (0-indexed): col0=1-9, col8=80-90, else c*10..c*10+9 */
+function colRange(c){
+  const start = c === 0 ? 1 : c * 10;
+  const end   = c === 8 ? 90 : c * 10 + 9;
+  return [start, end];
+}
+function pickDistinct(start, end, k){
+  const bag = []; for(let n=start;n<=end;n++) bag.push(n);
+  shuffle(bag); return bag.slice(0, k);
+}
+
+/* ---- ticket generation (generate-and-validate) ---- */
+function makeColumnCounts(){
+  const counts = Array(9).fill(1);          // every column starts with 1  → 9
+  let extra = 6;                            // distribute 6 more → 15 total
+  while(extra > 0){ const c = randInt(9); if(counts[c] < 3){ counts[c]++; extra--; } }
+  return counts;
+}
+function chooseRows(avail, need, rowRem){
+  // greedily fill the rows with most room (ties random) → keeps rows landing on exactly 5
+  return [...avail].sort((a,b)=> rowRem[b]-rowRem[a] || Math.random()-0.5).slice(0, need);
+}
+function makeLayout(counts){
+  for(let attempt=0; attempt<2000; attempt++){
+    const rowRem=[5,5,5];
+    const filled=[Array(9).fill(false),Array(9).fill(false),Array(9).fill(false)];
+    // process fuller columns first (a 3-count column is forced into all rows)
+    const cols=[...Array(9).keys()]; shuffle(cols); cols.sort((a,b)=>counts[b]-counts[a]);
+    let ok=true;
+    for(const c of cols){
+      const need=counts[c];
+      const avail=[0,1,2].filter(r=>rowRem[r]>0);
+      if(avail.length<need){ ok=false; break; }
+      for(const r of chooseRows(avail,need,rowRem)){ filled[r][c]=true; rowRem[r]--; }
+    }
+    if(ok && rowRem[0]===0 && rowRem[1]===0 && rowRem[2]===0) return filled;
+  }
+  return null;
+}
+function fillNumbers(filled, counts){
+  const t=[Array(9).fill(null),Array(9).fill(null),Array(9).fill(null)];
+  for(let c=0;c<9;c++){
+    const rows=[0,1,2].filter(r=>filled[r][c]);
+    if(rows.length!==counts[c]) return null;
+    const [s,e]=colRange(c);
+    const nums=pickDistinct(s,e,rows.length).sort((a,b)=>a-b);
+    rows.sort((a,b)=>a-b).forEach((r,i)=> t[r][c]=nums[i]);   // sorted top→bottom
+  }
+  return t;
+}
+function generateTicket(){
+  for(let a=0;a<80;a++){
+    const counts=makeColumnCounts();
+    const layout=makeLayout(counts);
+    if(!layout) continue;
+    const t=fillNumbers(layout,counts);
+    if(t && !validateStructure(t)) return t;   // validateStructure returns null when valid
+  }
+  throw new Error("Ticket generation failed");
+}
+function signature(g){ return g.map(row=>row.map(x=>x===null?".":x).join("-")).join("/"); }
+function generateUniqueTickets(n){
+  const out=[], seen=new Set(); let guard=0;
+  while(out.length<n){
+    const t=generateTicket(); const s=signature(t);
+    if(!seen.has(s)){ seen.add(s); out.push(t); }
+    if(++guard>n*200) break;   // safety valve (won't hit for n≤100)
+  }
+  return out;
+}
+
+/* ---- validation (also used by the self-test) → returns error string or null ---- */
+function validateStructure(g){
+  const flat=[];
+  for(let r=0;r<3;r++){
+    const nums=g[r].filter(x=>x!==null);
+    if(nums.length!==5) return "row "+r+" has "+nums.length;
+    nums.forEach(x=>flat.push(x));
+  }
+  if(flat.length!==15) return "not 15 numbers";
+  for(let c=0;c<9;c++){
+    const col=[g[0][c],g[1][c],g[2][c]].filter(x=>x!==null);
+    if(col.length<1||col.length>3) return "col "+c+" count "+col.length;
+    const [s,e]=colRange(c);
+    for(let i=0;i<col.length;i++){
+      if(col[i]<s||col[i]>e) return "col "+c+" out of range";
+      if(i>0 && col[i]<=col[i-1]) return "col "+c+" not sorted";
+    }
+  }
+  if(new Set(flat).size!==15) return "duplicate numbers";
+  return null;
+}
+
+/* ================== CLAIMS ================== */
+function flatNums(g){ return g.flat().filter(x=>x!==null); }
+function rowNums(g,r){ return g[r].filter(x=>x!==null); }
+function corners(g){
+  const top=rowNums(g,0), bot=rowNums(g,2);           // leftmost/rightmost filled cells per outer row
+  return [top[0], top[top.length-1], bot[0], bot[bot.length-1]];
+}
+const CLAIMS=[   // edit this array to add patterns (e.g. Early Seven, Pyramid)
+  {id:"early5", name:"Early Five",   test:(g,s)=> flatNums(g).filter(n=>s.has(n)).length>=5},
+  {id:"top",    name:"Top Line",     test:(g,s)=> rowNums(g,0).every(n=>s.has(n))},
+  {id:"middle", name:"Middle Line",  test:(g,s)=> rowNums(g,1).every(n=>s.has(n))},
+  {id:"bottom", name:"Bottom Line",  test:(g,s)=> rowNums(g,2).every(n=>s.has(n))},
+  {id:"corners",name:"Four Corners", test:(g,s)=> corners(g).every(n=>s.has(n))},
+  {id:"full",   name:"Full House",   test:(g,s)=> flatNums(g).every(n=>s.has(n))},
+];
+
+/* ================== GAME STATE ================== */
+let tickets=[];        // [{grid, player}]
+let drawn=[];          // ordered list of called numbers
+let drawnSet=new Set();
+let pool=[];           // remaining numbers
+let claimWinners={};   // id -> {ticket, player}
+let autoTimer=null;
+
+/* Replay the whole draw order to determine the FIRST ticket for each claim.
+   Doing it this way keeps "Undo" correct. */
+function recomputeClaims(){
+  const before=Object.keys(claimWinners);
+  claimWinners={};
+  const seen=new Set();
+  for(const n of drawn){
+    seen.add(n);
+    for(const claim of CLAIMS){
+      if(claimWinners[claim.id]) continue;
+      for(let i=0;i<tickets.length;i++){
+        if(claim.test(tickets[i].grid, seen)){
+          claimWinners[claim.id]={ticket:i, player:tickets[i].player};
+          break;
+        }
+      }
+    }
+  }
+  return Object.keys(claimWinners).filter(id=>!before.includes(id)); // newly-won ids
+}
+
+/* ================== PERSISTENCE (standalone file only) ================== */
+const KEY="tambola-state-v1";
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify({tickets, drawn})); }catch(e){/* sandboxed frame: skip */}
+}
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY); if(!raw) return false;
+    const s=JSON.parse(raw);
+    if(!s.tickets||!s.tickets.length) return false;
+    tickets=s.tickets; drawn=s.drawn||[]; drawnSet=new Set(drawn);
+    rebuildPool(); recomputeClaims(); return true;
+  }catch(e){ return false; }
+}
+function rebuildPool(){ pool=[]; for(let n=1;n<=90;n++) if(!drawnSet.has(n)) pool.push(n); }
+
+/* ================== ACTIONS ================== */
+function startGame(){
+  const count=clamp(parseInt(el("ticketCount").value)||6,1,100);
+  const names=el("names").value.split("\n").map(s=>s.trim());
+  tickets=generateUniqueTickets(count).map((g,i)=>({
+    grid:g, player:(names[i]&&names[i].length)?names[i]:("Player "+(i+1))
+  }));
+  drawn=[]; drawnSet=new Set(); claimWinners={}; rebuildPool();
+  save(); showGame(); renderAll();
+}
+function draw(){
+  if(pool.length===0) return;
+  const n=pool.splice(randInt(pool.length),1)[0];
+  drawn.push(n); drawnSet.add(n);
+  const fresh=recomputeClaims();
+  save(); renderAll(true);
+  if(el("voiceTg").checked) speak(n);
+  if(fresh.length) announce(fresh.map(id=>CLAIMS.find(c=>c.id===id).name));
+}
+function undo(){
+  if(drawn.length===0) return;
+  const n=drawn.pop(); drawnSet.delete(n); pool.push(n);
+  recomputeClaims(); save(); renderAll();
+}
+function newGameKeepTickets(){
+  if(drawn.length && !confirm("Start a fresh game with the same tickets? All called numbers and claims will be cleared.")) return;
+  drawn=[]; drawnSet=new Set(); claimWinners={}; rebuildPool();
+  stopAuto(); save(); renderAll();
+}
+function newTickets(){
+  if(!confirm("Discard this game and set up brand-new tickets?")) return;
+  stopAuto();
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  tickets=[]; drawn=[]; drawnSet=new Set(); claimWinners={};
+  el("game").style.display="none"; el("setup").style.display="";
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function speak(n){
+  if(!("speechSynthesis" in window)) return;
+  const u=new SpeechSynthesisUtterance("Number "+n); u.rate=.9; speechSynthesis.speak(u);
+}
+function stopAuto(){ if(autoTimer){clearInterval(autoTimer);autoTimer=null;} const t=el("autoTg"); if(t)t.checked=false; }
+function toggleAuto(){
+  if(el("autoTg").checked){
+    const secs=clamp(parseInt(el("autoSecs").value)||5,2,30);
+    autoTimer=setInterval(()=>{ if(pool.length) draw(); else stopAuto(); }, secs*1000);
+  } else stopAuto();
+}
+
+/* ================== ANNOUNCE ================== */
+let announceTimer=null;
+function announce(names){
+  const box=el("announce");
+  box.textContent="🎉 "+names.join(" · ")+" claimed!";
+  box.classList.add("show");
+  clearTimeout(announceTimer);
+  announceTimer=setTimeout(()=>box.classList.remove("show"), 3200);
+}
+
+/* ================== RENDER ================== */
+const el=id=>document.getElementById(id);
+function showGame(){ el("setup").style.display="none"; el("game").style.display="grid"; }
+
+function renderBall(isNew){
+  const ball=el("ball"), lab=el("ballLabel");
+  if(drawn.length===0){ ball.className="ball empty"; ball.textContent="Ready"; lab.textContent="Press draw to begin"; return; }
+  const n=drawn[drawn.length-1];
+  ball.className="ball"; ball.textContent=n;
+  lab.textContent = drawn.length+" of 90 called";
+  if(isNew){ ball.classList.remove("pop"); void ball.offsetWidth; ball.classList.add("pop"); }
+}
+function renderCounts(){ el("statDrawn").textContent=drawn.length; el("statLeft").textContent=90-drawn.length; }
+function renderRecent(){
+  const container=el("recent");
+  const last=drawn.slice(-12).reverse();
+  container.innerHTML = last.length
+    ? last.map((n,i)=>`<div class="rchip ${i===0?'new':''}">${n}</div>`).join("")
+    : `<span style="color:var(--faint);font-size:13px">No calls yet</span>`;
+}
+function renderBoard(){
+  const g=el("boardGrid"); const latest=drawn[drawn.length-1];
+  let html="";
+  for(let n=1;n<=90;n++){
+    const hit=drawnSet.has(n);
+    html+=`<div class="cell ${hit?'hit':''} ${n===latest?'latest':''}">${n}</div>`;
+  }
+  g.innerHTML=html;
+}
+function renderClaims(){
+  el("claimList").innerHTML = CLAIMS.map(c=>{
+    const w=claimWinners[c.id];
+    return `<div class="claim ${w?'won':''}">
+      <span class="dot"></span>
+      <span class="cname">${c.name}</span>
+      <span class="meta">${w?`<b>${escapeHtml(w.player)}</b><br>Ticket ${w.ticket+1}`:`<span class="open">Open</span>`}</span>
+    </div>`;
+  }).join("");
+}
+function renderTickets(){
+  // which claims each ticket has won
+  const wins={};
+  for(const c of CLAIMS){ const w=claimWinners[c.id]; if(w){ (wins[w.ticket]=wins[w.ticket]||[]).push(c.name); } }
+  el("ticketGrid").innerHTML = tickets.map((t,i)=>{
+    let cells="";
+    for(let r=0;r<3;r++) for(let c=0;c<9;c++){
+      const v=t.grid[r][c];
+      if(v===null) cells+=`<div class="tc blank"></div>`;
+      else cells+=`<div class="tc ${drawnSet.has(v)?'hit':''}">${v}</div>`;
+    }
+    const badges=(wins[i]||[]).map(n=>`<span class="badge">${n}</span>`).join("");
+    return `<div class="ticket">
+      <div class="tt"><span class="pname">${escapeHtml(t.player)}</span><span class="tno">Ticket ${i+1}</span></div>
+      <div class="tk">${cells}</div>
+      ${badges?`<div class="badges">${badges}</div>`:``}
+    </div>`;
+  }).join("");
+}
+function renderAll(isNew){
+  renderBall(isNew); renderCounts(); renderRecent(); renderBoard(); renderClaims(); renderTickets();
+  el("drawBtn").disabled = pool.length===0;
+  el("undoBtn").disabled = drawn.length===0;
+  if(pool.length===0){ el("ballLabel").textContent="All 90 numbers called"; stopAuto(); }
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
+
+/* Build a clean, self-contained print sheet and open it in its own window.
+   Falls back to window.print() if the browser blocks pop-ups (e.g. sandboxed preview). */
+function printTickets(){
+  if(!tickets.length) return;
+  const cards = tickets.map((t,i)=>{
+    let rows="";
+    for(let r=0;r<3;r++){
+      let tds="";
+      for(let c=0;c<9;c++){ const v=t.grid[r][c]; tds += v===null?'<td class="b"></td>':'<td>'+v+'</td>'; }
+      rows+="<tr>"+tds+"</tr>";
+    }
+    return '<div class="tk"><div class="hd"><b>'+escapeHtml(t.player)+'</b><span>Ticket '+(i+1)+'</span></div><table>'+rows+'</table></div>';
+  }).join("");
+  const doc =
+    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tambola tickets</title><style>'+
+    '@page{margin:12mm}'+
+    'body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#222;margin:0;padding:16px;'+
+    '-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
+    'h1{font-size:18px;margin:0 0 14px}'+
+    '.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}'+
+    '.tk{border:1px solid #999;border-radius:8px;padding:8px;break-inside:avoid;page-break-inside:avoid}'+
+    '.tk .hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}'+
+    '.tk .hd b{font-size:14px;color:#7a3d00}.tk .hd span{font-size:11px;color:#888}'+
+    'table{border-collapse:collapse;width:100%}'+
+    'td{border:1px solid #b8b8b8;height:30px;text-align:center;font-weight:700;font-size:14px;background:#fdf7ec}'+
+    'td.b{background:#e9dcc0}'+
+    '</style></head><body><h1>Tambola tickets — '+tickets.length+' total</h1>'+
+    '<div class="grid">'+cards+'</div></body></html>';
+
+  const w = window.open("", "tambola_print");
+  if(!w){ // pop-up blocked / sandboxed frame → fall back to printing this page
+    alert("Your browser blocked the print window. If you're viewing this inside an app preview, download the file and open it directly, then try again.");
+    return;
+  }
+  w.document.open(); w.document.write(doc); w.document.close(); w.focus();
+  setTimeout(()=>{ try{ w.print(); }catch(e){} }, 350);
+}
+
+/* ================== WIRE UP ================== */
+el("startBtn").addEventListener("click", startGame);
+el("drawBtn").addEventListener("click", draw);
+el("undoBtn").addEventListener("click", undo);
+el("newGameBtn").addEventListener("click", newGameKeepTickets);
+el("newTicketsBtn").addEventListener("click", newTickets);
+el("printBtn").addEventListener("click", printTickets);
+el("autoTg").addEventListener("change", toggleAuto);
+el("ticketCount").addEventListener("keydown", e=>{ if(e.key==="Enter") startGame(); });
+document.addEventListener("keydown", e=>{ // spacebar draws while a game is on
+  if(e.code==="Space" && el("game").style.display==="grid" && document.activeElement.tagName!=="TEXTAREA"){
+    e.preventDefault(); if(!el("drawBtn").disabled) draw();
+  }
+});
+
+/* Resume a saved game if one exists */
+if(load()){ showGame(); renderAll(); }
+
+/* ================== SELF-TEST (console) ================== */
+(function selfTest(){
+  let fails=0, firstErr=null;
+  for(let i=0;i<1000;i++){
+    const err=validateStructure(generateTicket());
+    if(err){ fails++; if(!firstErr) firstErr=err; }
+  }
+  console.log(fails===0
+    ? "%c✅ Tambola self-test passed — 1000/1000 valid tickets"
+    : `%c❌ Tambola self-test — ${fails} invalid (first: ${firstErr})`,
+    "font-weight:bold;color:"+(fails===0?"#17b57e":"#e8455c"));
+})();
+</script>
+</body>
+</html>
